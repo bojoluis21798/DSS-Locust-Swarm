@@ -4,7 +4,7 @@ count = 0
 
 def __saveFrame(frame):
 	global count
-	cv2.imwrite('./img/'+str(count)+'.png', frame)
+	cv2.imwrite('./img/obj'+str(count)+'.png', frame)
 	count+= 1
 
 def startCam():

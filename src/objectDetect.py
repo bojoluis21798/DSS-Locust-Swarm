@@ -3,7 +3,7 @@ import cv2
 def detect(): #detect all images in /img folder draws a rectangle on target image
     count = 0
     while(True):
-        image = cv2.imread("../img/obj-"+str(count)+".png")
+        image = cv2.imread("../img/obj-"+str(count)+".jpg")
 
         if(image is None):
             break
@@ -39,5 +39,5 @@ def detect(): #detect all images in /img folder draws a rectangle on target imag
             cv2.rectangle(image,(x,y),(x+w,y+h),(255,0,255),2)
         # write original image with added contours to disk
 
-        cv2.imwrite("../img/object_highlighted/obj-"+str(count)+".png", image)
+        cv2.imwrite("../img/object_highlighted/obj-"+str(count)+".jpg", image)
         count += 1

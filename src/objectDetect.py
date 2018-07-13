@@ -34,39 +34,23 @@ def watershed(img):
 
 def contours(img):
     img = img.copy()
-    img_hsv = cv.cvtColor(img, cv.COLOR_RGB2HSV)
-    # filter black color
-    mask1 = cv.inRange(img_hsv, np.array([0, 0, 0]), np.array([180, 255, 125]))
-    mask1 = cv.morphologyEx(mask1, cv.MORPH_CLOSE, cv.getStructuringElement(cv.MORPH_ELLIPSE, (3, 3)))
-    mask1 = cv.Canny(mask1, 100, 300)
-    mask1 = cv.GaussianBlur(mask1, (1, 1), 0)
-    mask1 = cv.Canny(mask1, 100, 300)
+    edged = cv.Canny(img, 10, 250)
 
-    # mask1 = cv.morphologyEx(mask1, cv.MORPH_CLOSE, cv.getStructuringElement(cv.MORPH_RECT, (3, 3)))
+    #applying closing function
+    kernel = cv.getStructuringElement(cv.MORPH_RECT, (7, 7))
+    closed = cv.morphologyEx(edged, cv.MORPH_CLOSE, kernel)
+    #finding_contours
+    _, cnts, _ = cv.findContours(closed.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 
-    # Find contours for detected portion of the image
-    im2, cnts, hierarchy = cv.findContours(mask1.copy(), cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE)
-    # cnts = sorted(cnts, key = cv.contourArea, reverse = True)[:2] # get largest five contour area
-    rects = []
+    # for c in cnts:
+    #     peri = cv.arcLength(c, True)
+    #     approx = cv.approxPolyDP(c, 0.02 * peri, True)
+    #     cv.drawContours(img, [approx], -1, (0, 255, 0), 2)
+
     for c in cnts:
-        #peri = cv.arcLength(c, True)
-        # approx = cv.approxPolyDP(c, 0.02 * peri, True)
-        x, y, w, h = cv.boundingRect(c)
-        if h >= 15:
-            # if height is enough
-            # create rectangle for bounding
-            rect = (x, y, w, h)
-            rects.append(rect)
-            cv.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 1);
+        cv.drawContours(img, c, -1, (0, 255, 0), 5)
 
-    # for row in range(len(cnts)):
-    #     for col in range(len(cnts[row])):
-    #         x = cnts[row][col][0][0]
-    #         y = cnts[row][col][0][1]
-
-    #         img[x][y] = [20,255,57]
-
-    return mask1
+    return img
 
 def detectAll():
     i = 0

@@ -1,5 +1,5 @@
 from src.camera import startCam
-from src.objectDetect import detect
+from src.objectDetect import detect, detectAll
 import sys
 
 def main():

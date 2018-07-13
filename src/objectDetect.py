@@ -42,13 +42,11 @@ def contours(img):
     #finding_contours
     _, cnts, _ = cv.findContours(closed.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 
-    # for c in cnts:
-    #     peri = cv.arcLength(c, True)
-    #     approx = cv.approxPolyDP(c, 0.02 * peri, True)
-    #     cv.drawContours(img, [approx], -1, (0, 255, 0), 2)
-
     for c in cnts:
-        cv.drawContours(img, c, -1, (0, 255, 0), 5)
+        peri = cv.arcLength(c, True)
+        approx = cv.approxPolyDP(c, 0.02 * peri, True)
+        cv.drawContours(img, [approx], -1, (0, 255, 0), 2)
+
 
     return img
 

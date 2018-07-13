@@ -8,9 +8,11 @@ def main():
         startCam()
         # Draw Rectangle around object in the image.
         detect()
-    elif(sys.argv[1] == "skipcam"):
+    elif(len(sys.argv) == 2 and sys.argv[1] == "skipcam"):
         # proceed to detection.
         detect()
+    elif(len(sys.argv) == 3 and sys.argv[1] == "test"):
+        detect(int(sys.argv[2]))
     else:
         print "No such command"
 

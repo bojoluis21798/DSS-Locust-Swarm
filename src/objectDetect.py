@@ -1,49 +1,50 @@
-import cv2
+import cv2 as cv
+import numpy as np
+from matplotlib import pyplot as plt
 
-#detect all images in /img folder draws a rectangle on target image
-def detect():
-    count = 0
+def highlight(img):
+
+    if img is None:
+        break
+
+    gray = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
+    ret, thresh = cv.threshold(gray,0,255,cv.THRESH_BINARY_INV+cv.THRESH_OTSU)
+
+    kernel = np.ones((3,3),np.uint8)
+    opening = cv.morphologyEx(thresh,cv.MORPH_OPEN,kernel, iterations = 2)
+
+    sure_bg = cv.dilate(opening,kernel,iterations=3)
+
+    dist_transform = cv.distanceTransform(opening,cv.DIST_L2,5)
+    ret, sure_fg = cv.threshold(dist_transform,0.7*dist_transform.max(),255,0)
+
+    sure_fg = np.uint8(sure_fg)
+    unknown = cv.subtract(sure_bg,sure_fg)
+
+    # Marker labelling
+    ret, markers = cv.connectedComponents(sure_fg)
+    # Add one to all labels so that sure background is not 0, but 1
+    markers = markers+1
+    # Now, mark the region of unknown with zero
+    markers[unknown==255] = 0
+
+    markers = cv.watershed(img,markers)
+    for row in range(int(len(markers)*0.01), int(len(markers)-(len(markers)*0.01))):
+        for col in range(int(len(markers[i])*0.01), int(len(markers[i])-len(markers[i])*0.01)):
+            if(markers[row][col] == -1):
+                img[row][col] = [20,255,57]
+
+    return img
+
+def detectAll():
+    i = 0
     while(True):
-        image = cv2.imread("./img/obj-"+str(count)+".jpg")
+        img = cv.imread("./img/obj-"+str(i)+".jpg")
+        ret = highlight()
+        cv.imwrite("./img/object_highlighted/obj-"+str(i)+".jpg", ret)
+        i += 1
 
-        height = image.shape[0]
-        width = image.shape[1]
-
-        if(image is None):
-            break
-
-        gray = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY) # grayscale
-        _,thresh = cv2.threshold(gray,150,255,cv2.THRESH_BINARY_INV)
-        #threshold
-        kernel = cv2.getStructuringElement(cv2.MORPH_CROSS,(3,3))
-        dilated = cv2.dilate(thresh,kernel,iterations = 13) # dilate
-        _, contours, _ = cv2.findContours(
-            dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-
-        # get contours
-        # for each contour found, draw a rectangle around it on original
-        for contour in contours:
-            # get rectangle bounding contour
-
-            (x,y,w,h) = cv2.boundingRect(contour)
-            # (x, y, w, h)
-            # discard areas that are too large
-
-            if h>(height*.90) and w>(width*.90):
-
-                continue
-            # discard areas that are too small
-
-            if h<(height*0.10) or w<(width*.10):
-
-                continue
-            # draw rectangle around contour on original image
-
-            cv2.rectangle(
-                image,(x,y),
-                (x+w,y+h),
-                (255,0,255),2)
-        # write original image with added contours to disk
-
-        cv2.imwrite("./img/object_highlighted/obj-"+str(count)+".jpg", image)
-        count += 1
+def detect(imgId):
+    img = cv.imread("./img/obj-"+str(imgId)+".jpg")
+    ret = highlight()
+    cv.imwrite("./img/object_highlighted/obj-"+str(imgId)+".jpg", ret)

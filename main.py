@@ -7,10 +7,10 @@ def main():
         # Start camera.
         startCam()
         # Draw Rectangle around object in the image.
-        detect()
+        detectAll()
     elif(len(sys.argv) == 2 and sys.argv[1] == "skipcam"):
         # proceed to detection.
-        detect()
+        detectAll()
     elif(len(sys.argv) == 3 and sys.argv[1] == "test"):
         detect(int(sys.argv[2]))
     else:

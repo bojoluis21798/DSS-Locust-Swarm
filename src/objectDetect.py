@@ -1,6 +1,7 @@
 import cv2 as cv
 import numpy as np
 from matplotlib import pyplot as plt
+from scipy.signal import savgol_filter
 
 def watershed(img):
     gray = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
@@ -32,7 +33,7 @@ def watershed(img):
 
     return img
 
-def contours(img):
+def contoursWithCanny(img):
     img = img.copy()
     edged = cv.Canny(img, 10, 250)
 
@@ -50,6 +51,71 @@ def contours(img):
 
     return img
 
+def contoursWithSobel(img):
+    def findSignificantContours (img, sobel_8u):
+        image, contours, heirarchy = cv.findContours(sobel_8u, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+
+        # Find level 1 contours
+        level1 = []
+        for i, tupl in enumerate(heirarchy[0]):
+            # Each array is in format (Next, Prev, First child, Parent)
+            # Filter the ones without parent
+            if tupl[3] == -1:
+                tupl = np.insert(tupl, 0, [i])
+                level1.append(tupl)
+
+        # From among them, find the contours with large surface area.
+        significant = []
+        tooSmall = sobel_8u.size * 5 / 100 # If contour isn't covering 5% of total area of image then it probably is too small
+        for tupl in level1:
+            contour = contours[tupl[0]];
+            area = cv.contourArea(contour)
+            if area > tooSmall:
+                cv.drawContours(img, [contour], 0, (0,255,0),2, cv.LINE_AA, maxLevel=1)
+                significant.append([contour, area])
+
+        significant.sort(key=lambda x: x[1])
+        return [x[0] for x in significant];
+
+    def getSobel (channel):
+
+        sobelx = cv.Sobel(channel, cv.CV_16S, 1, 0, borderType=cv.BORDER_REPLICATE)
+        sobely = cv.Sobel(channel, cv.CV_16S, 0, 1, borderType=cv.BORDER_REPLICATE)
+        sobel = np.hypot(sobelx, sobely)
+
+        return sobel;
+
+    blurred = cv.GaussianBlur(img, (5, 5), 0) # Remove noise
+
+    # Edge operator
+    sobel = np.max( np.array([ getSobel(blurred[:,:, 0]), getSobel(blurred[:,:, 1]), getSobel(blurred[:,:, 2]) ]), axis=0 )
+
+    # Noise reduction trick, from http://sourceforge.net/p/octave/image/ci/default/tree/inst/edge.m#l182
+    mean = np.mean(sobel)
+
+    # Zero any values less than mean. This reduces a lot of noise.
+    sobel[sobel <= mean] = 0;
+    sobel[sobel > 255] = 255;
+
+    cv.imwrite('output/edge.png', sobel);
+
+    sobel_8u = np.asarray(sobel, np.uint8)
+
+    # Find contours
+    significant = findSignificantContours(img, sobel_8u)
+
+    # Mask
+    mask = sobel.copy()
+    mask[mask > 0] = 0
+    cv.fillPoly(mask, significant, 255)
+    # Invert mask
+    mask = np.logical_not(mask)
+
+    #Finally remove the background
+    img[mask] = 0;
+
+    return img
+
 def detectAll():
     i = 0
     while(True):
@@ -64,5 +130,7 @@ def detectAll():
 
 def detect(imgId):
     img = cv.imread("./img/obj-"+str(imgId)+".jpg")
-    ret = contours(img)
+    ret = contoursWithCanny(img)
+    cv.imshow("Contours", img)
+    cv.waitKey(0)
     cv.imwrite("./img/object_highlighted/obj-"+str(imgId)+".jpg", ret)

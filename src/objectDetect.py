@@ -43,12 +43,20 @@ def contoursWithCanny(img):
     #finding_contours
     _, cnts, _ = cv.findContours(closed.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 
+    cnts.sort(key=lambda x: cv.contourArea(x))
+    cnts = cnts[:2]
+
+    tooSmall = img.size * 0.05
     for c in cnts:
-        peri = cv.arcLength(c, True)
-        approx = cv.approxPolyDP(c, 0.02 * peri, True)
-        cv.drawContours(img, [approx], -1, (0, 255, 0), 2)
+        if(cv.contourArea(c) < tooSmall):
+            continue
 
+        x,y,w,h = cv.boundingRect(c)
+        # if w>50 and h>50:
+        #     cropped=img[y:y+h,x:x+w]
+        #     return cropped
 
+        cv.rectangle(img, (x,y), (x+w, y+h), (255,0,0), 2)
     return img
 
 def contoursWithSobel(img):
@@ -131,6 +139,6 @@ def detectAll():
 def detect(imgId):
     img = cv.imread("./img/obj-"+str(imgId)+".jpg")
     ret = contoursWithCanny(img)
-    cv.imshow("Contours", img)
+    cv.imshow("Contours", ret)
     cv.waitKey(0)
     cv.imwrite("./img/object_highlighted/obj-"+str(imgId)+".jpg", ret)

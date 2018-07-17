@@ -124,6 +124,9 @@ def contoursWithSobel(img):
 
     return img
 
+def segmentApproach(img):
+    return contoursWithCanny(img)
+
 def detectAll():
     i = 0
     while(True):
@@ -132,13 +135,13 @@ def detectAll():
         if img is None:
             break
 
-        ret = watershed(img)
+        ret = segmentApproach(img)
         cv.imwrite("./img/object_highlighted/obj-"+str(i)+".jpg", ret)
         i += 1
 
 def detect(imgId):
     img = cv.imread("./img/obj-"+str(imgId)+".jpg")
-    ret = contoursWithCanny(img)
+    ret = segmentApproach(img)
     cv.imshow("Contours", ret)
     cv.waitKey(0)
     cv.imwrite("./img/object_highlighted/obj-"+str(imgId)+".jpg", ret)

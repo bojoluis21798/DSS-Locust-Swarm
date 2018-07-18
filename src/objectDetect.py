@@ -44,12 +44,12 @@ def contoursWithCanny(img):
     _, cnts, _ = cv.findContours(closed.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 
     cnts.sort(key=lambda x: cv.contourArea(x))
-    cnts = cnts[:2]
+    #cnts = cnts[:2]
 
     tooSmall = img.size * 0.05
     for c in cnts:
-        if(cv.contourArea(c) < tooSmall):
-            continue
+        # if(cv.contourArea(c) < tooSmall):
+        #     continue
 
         x,y,w,h = cv.boundingRect(c)
         # if w>50 and h>50:
@@ -57,6 +57,8 @@ def contoursWithCanny(img):
         #     return cropped
 
         cv.rectangle(img, (x,y), (x+w, y+h), (255,0,0), 2)
+
+        cv.drawContours(img, c, -1, (0,255,0), 2)
     return img
 
 def contoursWithSobel(img):
@@ -78,7 +80,9 @@ def contoursWithSobel(img):
         for tupl in level1:
             contour = contours[tupl[0]];
             area = cv.contourArea(contour)
+
             if area > tooSmall:
+                contour = cv.convexHull(contour)
                 cv.drawContours(img, [contour], 0, (0,255,0),2, cv.LINE_AA, maxLevel=1)
                 significant.append([contour, area])
 
@@ -125,7 +129,7 @@ def contoursWithSobel(img):
     return img
 
 def segmentApproach(img):
-    return contoursWithCanny(img)
+    return contoursWithSobel(img)
 
 def detectAll():
     i = 0
@@ -134,13 +138,14 @@ def detectAll():
 
         if img is None:
             break
-
+        print "Detecting obj-"+str(i)+".jpg ..."
         ret = segmentApproach(img)
         cv.imwrite("./img/object_highlighted/obj-"+str(i)+".jpg", ret)
         i += 1
 
 def detect(imgId):
     img = cv.imread("./img/obj-"+str(imgId)+".jpg")
+    print "Detection obj-"+str(imgId)+".jpg ..."
     ret = segmentApproach(img)
     cv.imshow("Contours", ret)
     cv.waitKey(0)

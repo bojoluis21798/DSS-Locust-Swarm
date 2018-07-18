@@ -128,8 +128,29 @@ def contoursWithSobel(img):
 
     return img
 
+def contoursWithStaticSaliency(img):
+    img = img.copy()
+    img = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
+    img = cv.fastNlMeansDenoising(img,None,10,10,7,21)
+
+    saliency = cv.saliency.StaticSaliencyFineGrained_create()
+    (success, saliencyMap) = saliency.computeSaliency(img)
+    threshMap = cv.threshold(saliencyMap, 0, 255, cv.THRESH_BINARY | cv.THRESH_OTSU)[1]
+
+    # mean = np.mean(threshMap)
+
+    # threshMap[threshMap <= mean] = 0
+    # threshMap[threshMap > mean] = 255
+
+    # mean = np.mean(saliencyMap)
+
+    # saliencyMap[saliencyMap <= mean] = 0
+    # saliencyMap[saliencyMap > mean] = 255
+
+    return threshMap
+
 def segmentApproach(img):
-    return contoursWithSobel(img)
+    return contoursWithStaticSaliency(img)
 
 def detectAll():
     i = 0
@@ -147,6 +168,4 @@ def detect(imgId):
     img = cv.imread("./img/obj-"+str(imgId)+".jpg")
     print "Detection obj-"+str(imgId)+".jpg ..."
     ret = segmentApproach(img)
-    cv.imshow("Contours", ret)
-    cv.waitKey(0)
     cv.imwrite("./img/object_highlighted/obj-"+str(imgId)+".jpg", ret)

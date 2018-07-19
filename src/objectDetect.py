@@ -130,24 +130,31 @@ def contoursWithSobel(img):
 
 def contoursWithStaticSaliency(img):
     img = img.copy()
-    img = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
-    img = cv.fastNlMeansDenoising(img,None,10,10,7,21)
+    noise = cv.fastNlMeansDenoisingColored(img,None,10,10,7,21)
 
     saliency = cv.saliency.StaticSaliencyFineGrained_create()
     (success, saliencyMap) = saliency.computeSaliency(img)
     threshMap = cv.threshold(saliencyMap, 0, 255, cv.THRESH_BINARY | cv.THRESH_OTSU)[1]
 
-    # mean = np.mean(threshMap)
+    kernel = np.ones((30, 30), np.uint8)
+    closing = cv.morphologyEx(threshMap, cv.MORPH_CLOSE, kernel)
 
-    # threshMap[threshMap <= mean] = 0
-    # threshMap[threshMap > mean] = 255
+    # edged = cv.Canny(closing, 0, 250)
 
-    # mean = np.mean(saliencyMap)
+    _, cnts, heirarchy = cv.findContours(closing, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 
-    # saliencyMap[saliencyMap <= mean] = 0
-    # saliencyMap[saliencyMap > mean] = 255
+    tooSmall = img.size * 0.03
+    for c in cnts:
+        # if cv.contourArea(c) < tooSmall:
+        #     continue
 
-    return threshMap
+        rect = cv.minAreaRect(c)
+        if rect[1][0]*rect[1][1] > tooSmall:
+            box = cv.boxPoints(rect)
+            box = np.int0(box)
+            img = cv.drawContours(img,[box],0,(0,255,0),5)
+
+    return img
 
 def segmentApproach(img):
     return contoursWithStaticSaliency(img)

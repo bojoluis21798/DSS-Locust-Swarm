@@ -62,8 +62,17 @@ def contoursWithCanny(img):
     return img
 
 def contoursWithSobel(img):
-    def findSignificantContours (img, sobel_8u):
-        image, contours, heirarchy = cv.findContours(sobel_8u, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+    def edgedetect (channel):
+        sobelX = cv.Sobel(channel, cv.CV_16S, 1, 0)
+        sobelY = cv.Sobel(channel, cv.CV_16S, 0, 1)
+        sobel = np.hypot(sobelX, sobelY)
+
+        sobel[sobel > 255] = 255; # Some values seem to go above 255. However RGB channels has to be within 0-255
+        return sobel
+
+
+    def findSignificantContours (img, edgeImg):
+        image, contours, heirarchy = cv.findContours(edgeImg, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
 
         # Find level 1 contours
         level1 = []
@@ -74,62 +83,50 @@ def contoursWithSobel(img):
                 tupl = np.insert(tupl, 0, [i])
                 level1.append(tupl)
 
-        # From among them, find the contours with large surface area.
         significant = []
-        tooSmall = sobel_8u.size * 5 / 100 # If contour isn't covering 5% of total area of image then it probably is too small
+        tooSmall = edgeImg.size * 5 / 100
         for tupl in level1:
-            contour = contours[tupl[0]];
+            contour = contours[tupl[0]]
+            epsilon = 0.10 * cv.arcLength(contour, True)
+            approx = cv.approxPolyDP(contour, 3, True)
+            contour = approx
             area = cv.contourArea(contour)
-
             if area > tooSmall:
-                contour = cv.convexHull(contour)
-                cv.drawContours(img, [contour], 0, (0,255,0),2, cv.LINE_AA, maxLevel=1)
                 significant.append([contour, area])
 
+                # Draw the contour on the original image
+                cv.drawContours(img, [contour], 0, (0, 255, 0), 2, cv.LINE_AA, maxLevel=1)
+
         significant.sort(key=lambda x: x[1])
-        return [x[0] for x in significant];
+        # print ([x[1] for x in significant])
+        return [x[0] for x in significant]
+        return img
 
-    def getSobel (channel):
 
-        sobelx = cv.Sobel(channel, cv.CV_16S, 1, 0, borderType=cv.BORDER_REPLICATE)
-        sobely = cv.Sobel(channel, cv.CV_16S, 0, 1, borderType=cv.BORDER_REPLICATE)
-        sobel = np.hypot(sobelx, sobely)
+    blurred = cv.GaussianBlur(img,(5,5),0)
+    edgeImg = np.max( np.array([ edgedetect(blurred[:,:, 0]), edgedetect(blurred[:,:, 1]), edgedetect(blurred[:,:, 2]) ]), axis=0 )
+    mean = np.mean(edgeImg)
+    edgeImg[edgeImg <= mean] = 0
+    edgeImg[edgeImg > 255] = 255
 
-        return sobel;
-
-    blurred = cv.GaussianBlur(img, (5, 5), 0) # Remove noise
-
-    # Edge operator
-    sobel = np.max( np.array([ getSobel(blurred[:,:, 0]), getSobel(blurred[:,:, 1]), getSobel(blurred[:,:, 2]) ]), axis=0 )
-
-    # Noise reduction trick, from http://sourceforge.net/p/octave/image/ci/default/tree/inst/edge.m#l182
-    mean = np.mean(sobel)
-
-    # Zero any values less than mean. This reduces a lot of noise.
-    sobel[sobel <= mean] = 0;
-    sobel[sobel > 255] = 255;
-
-    cv.imwrite('output/edge.png', sobel);
-
-    sobel_8u = np.asarray(sobel, np.uint8)
-
+    edgeImg_8u = np.asarray(edgeImg, np.uint8)
     # Find contours
-    significant = findSignificantContours(img, sobel_8u)
+    significant = findSignificantContours(img, edgeImg_8u)
 
     # Mask
-    mask = sobel.copy()
+    mask = edgeImg.copy()
     mask[mask > 0] = 0
     cv.fillPoly(mask, significant, 255)
     # Invert mask
     mask = np.logical_not(mask)
 
     #Finally remove the background
-    img[mask] = 0;
+    img[mask] = 0
 
     return img
 
 def contoursWithStaticSaliency(img):
-    img = img.copy()
+    img = contoursWithSobel(img);
     noise = cv.fastNlMeansDenoisingColored(img,None,10,10,7,21)
 
     saliency = cv.saliency.StaticSaliencyFineGrained_create()
@@ -142,7 +139,7 @@ def contoursWithStaticSaliency(img):
     # edged = cv.Canny(closing, 0, 250)
 
     _, cnts, heirarchy = cv.findContours(closing, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-
+    
     tooSmall = img.size * 0.03
     for c in cnts:
         # if cv.contourArea(c) < tooSmall:

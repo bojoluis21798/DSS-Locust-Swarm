@@ -157,7 +157,7 @@ def contoursWithStaticSaliency(img):
     return img
 
 def segmentApproach(img):
-    return contoursWithStaticSaliency(img)
+    return contoursWithSobel(img)
 
 def detectAll():
     i = 0

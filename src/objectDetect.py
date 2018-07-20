@@ -3,6 +3,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 from scipy.signal import savgol_filter
 from scipy.interpolate import splprep, splev
+from imutils import contours as cnts
+from imutils import perspective
 
 def watershed(img):
     gray = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
@@ -188,12 +190,31 @@ def smoothingPoly(img_contour, contours, orig_img):
         index+=1
 
     cv.drawContours(orig_img, contours, -1, (255,255,255), 2)
-    return orig_img
+    return orig_img, contours
 
+def orderingContours(img, contours):
+    (contours,_) = cnts.sort_contours(contours)
+    colors = ((0, 0, 255), (240, 0, 159), (255, 0, 0), (255, 255, 0))
+
+    for(i, c) in enumerate(contours):
+        box = cv.minAreaRect(c)
+        box = cv.boxPoints(box)
+        box = np.array(box,dtype = "int")
+        cv.drawContours(img,[box], -1, (0,255,0), 2)
+        rect = perspective.order_points(box)
+
+        for ((x, y), color) in zip(rect, colors):
+		    cv.circle(img, (int(x), int(y)), 5, color, -1)
+        
+        # draw the object num at the top-left corner
+        cv.putText(img, "Object #{}".format(i + 1), (int(rect[0][0] - 15), int(rect[0][1] - 15)), cv.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
     
+    return img
+
 def sobelApproach(img):
     image_with_contour, contours = contoursWithSobel(img)
-    return smoothingPoly(image_with_contour, contours, img)
+    smoothened_contour_img, smooth_contours = smoothingPoly(image_with_contour, contours, img)
+    return orderingContours(img, smooth_contours)
 
 def detectAll():
     i = 0

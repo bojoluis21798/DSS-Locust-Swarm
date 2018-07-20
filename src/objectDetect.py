@@ -147,7 +147,7 @@ def contoursWithStaticSaliency(img):
     for c in cnts:
         # if cv.contourArea(c) < tooSmall:
         #     continue
-
+        cv.drawContours(img, [c], -1, (255,0,0), 5)
         rect = cv.minAreaRect(c)
         if rect[1][0]*rect[1][1] > tooSmall:
             box = cv.boxPoints(rect)

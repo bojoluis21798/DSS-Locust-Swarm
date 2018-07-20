@@ -85,6 +85,10 @@ def contoursWithSobel(img):
 
         significant = []
         tooSmall = edgeImg.size * 5 / 100
+        height, width, _ = img.shape
+        min_x, min_y = width, height
+        max_x = max_y = 0
+
         for tupl in level1:
             contour = contours[tupl[0]]
             epsilon = 0.10 * cv.arcLength(contour, True)
@@ -94,13 +98,16 @@ def contoursWithSobel(img):
             if area > tooSmall:
                 significant.append([contour, area])
 
+                (x,y,w,h) = cv.boundingRect(contour)
+                min_x, max_x = min(x, min_x), max(x+w, max_x)
+                min_y, max_y = min(y, min_y), max(y+h, max_y)
+
                 # Draw the contour on the original image
                 cv.drawContours(img, [contour], 0, (0, 255, 0), 2, cv.LINE_AA, maxLevel=1)
 
         significant.sort(key=lambda x: x[1])
         # print ([x[1] for x in significant])
-        return [x[0] for x in significant]
-        return img
+        return [x[0] for x in significant], min_x, min_y, max_x, max_y
 
 
     blurred = cv.GaussianBlur(img,(5,5),0)
@@ -111,7 +118,7 @@ def contoursWithSobel(img):
 
     edgeImg_8u = np.asarray(edgeImg, np.uint8)
     # Find contours
-    significant = findSignificantContours(img, edgeImg_8u)
+    significant, min_x, min_y, max_x, max_y = findSignificantContours(img, edgeImg_8u)
 
     # Mask
     mask = edgeImg.copy()
@@ -122,6 +129,8 @@ def contoursWithSobel(img):
 
     #Finally remove the background
     img[mask] = 0
+
+    cv.rectangle(img, (min_x, min_y), (max_x, max_y), (255,0,0), 2)
 
     return img
 
@@ -137,9 +146,9 @@ def contoursWithStaticSaliency(img):
     closing = cv.morphologyEx(threshMap, cv.MORPH_CLOSE, kernel)
 
     # edged = cv.Canny(closing, 0, 250)
-
+    cv.imshow("Closing" ,closing)
     _, cnts, heirarchy = cv.findContours(closing, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-    
+
     tooSmall = img.size * 0.03
     for c in cnts:
         # if cv.contourArea(c) < tooSmall:

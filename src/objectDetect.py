@@ -126,7 +126,7 @@ def contoursWithSobel(img):
     return img
 
 def contoursWithStaticSaliency(img):
-    img = contoursWithSobel(img);
+    img = contoursWithSobel(img)
     noise = cv.fastNlMeansDenoisingColored(img,None,10,10,7,21)
 
     saliency = cv.saliency.StaticSaliencyFineGrained_create()
@@ -156,6 +156,9 @@ def contoursWithStaticSaliency(img):
 def segmentApproach(img):
     return contoursWithStaticSaliency(img)
 
+def sobelApproach(img):
+    return contoursWithSobel(img)
+
 def detectAll():
     i = 0
     while(True):
@@ -164,12 +167,12 @@ def detectAll():
         if img is None:
             break
         print "Detecting obj-"+str(i)+".jpg ..."
-        ret = segmentApproach(img)
+        ret = sobelApproach(img)
         cv.imwrite("./img/object_highlighted/obj-"+str(i)+".jpg", ret)
         i += 1
 
 def detect(imgId):
     img = cv.imread("./img/obj-"+str(imgId)+".jpg")
     print "Detection obj-"+str(imgId)+".jpg ..."
-    ret = segmentApproach(img)
+    ret = sobelApproach(img)
     cv.imwrite("./img/object_highlighted/obj-"+str(imgId)+".jpg", ret)

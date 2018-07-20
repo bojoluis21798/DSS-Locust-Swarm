@@ -2,6 +2,7 @@ import cv2 as cv
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy.signal import savgol_filter
+from scipy.interpolate import splprep, splev
 
 def watershed(img):
     gray = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
@@ -61,6 +62,37 @@ def contoursWithCanny(img):
         cv.drawContours(img, c, -1, (0,255,0), 2)
     return img
 
+def contoursWithStaticSaliency(img):
+    img = contoursWithSobel(img)
+    noise = cv.fastNlMeansDenoisingColored(img,None,10,10,7,21)
+
+    saliency = cv.saliency.StaticSaliencyFineGrained_create()
+    (success, saliencyMap) = saliency.computeSaliency(img)
+    threshMap = cv.threshold(saliencyMap, 0, 255, cv.THRESH_BINARY | cv.THRESH_OTSU)[1]
+
+    kernel = np.ones((30, 30), np.uint8)
+    closing = cv.morphologyEx(threshMap, cv.MORPH_CLOSE, kernel)
+
+    # edged = cv.Canny(closing, 0, 250)
+
+    _, cnts, heirarchy = cv.findContours(closing, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    
+    tooSmall = img.size * 0.03
+    for c in cnts:
+        # if cv.contourArea(c) < tooSmall:
+        #     continue
+
+        rect = cv.minAreaRect(c)
+        if rect[1][0]*rect[1][1] > tooSmall:
+            box = cv.boxPoints(rect)
+            box = np.int0(box)
+            img = cv.drawContours(img,[box],0,(0,255,0),5)
+
+    return img
+
+def segmentApproach(img):
+    return contoursWithStaticSaliency(img)
+
 def contoursWithSobel(img):
     def edgedetect (channel):
         sobelX = cv.Sobel(channel, cv.CV_16S, 1, 0)
@@ -100,7 +132,6 @@ def contoursWithSobel(img):
         significant.sort(key=lambda x: x[1])
         # print ([x[1] for x in significant])
         return [x[0] for x in significant]
-        return img
 
 
     blurred = cv.GaussianBlur(img,(5,5),0)
@@ -123,41 +154,43 @@ def contoursWithSobel(img):
     #Finally remove the background
     img[mask] = 0
 
-    return img
+    return img, significant
 
-def contoursWithStaticSaliency(img):
-    img = contoursWithSobel(img)
-    noise = cv.fastNlMeansDenoisingColored(img,None,10,10,7,21)
-
-    saliency = cv.saliency.StaticSaliencyFineGrained_create()
-    (success, saliencyMap) = saliency.computeSaliency(img)
-    threshMap = cv.threshold(saliencyMap, 0, 255, cv.THRESH_BINARY | cv.THRESH_OTSU)[1]
-
-    kernel = np.ones((30, 30), np.uint8)
-    closing = cv.morphologyEx(threshMap, cv.MORPH_CLOSE, kernel)
-
-    # edged = cv.Canny(closing, 0, 250)
-
-    _, cnts, heirarchy = cv.findContours(closing, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+def smoothingInterpolate(img_contour, contours, orig_img):
     
-    tooSmall = img.size * 0.03
-    for c in cnts:
-        # if cv.contourArea(c) < tooSmall:
-        #     continue
+    smoothened = []
 
-        rect = cv.minAreaRect(c)
-        if rect[1][0]*rect[1][1] > tooSmall:
-            box = cv.boxPoints(rect)
-            box = np.int0(box)
-            img = cv.drawContours(img,[box],0,(0,255,0),5)
+    for contour in contours:
+        x,y = contour.T
+    # Convert from numpy arrays to normal arrays
+        x = x.tolist()[0]
+        y = y.tolist()[0]
+    
+        tck, u = splprep([x,y], u=None, s=1.0, per=1)
+        u_new = np.linspace(u.min(), u.max(), 25)
+        x_new, y_new = splev(u_new, tck, der=0)
+        res_array = [[[int(i[0]), int(i[1])]] for i in zip(x_new,y_new)]
+        smoothened.append(np.asarray(res_array, dtype=np.int32))
 
-    return img
+    # Overlay the smoothed contours on the original image
+    cv.drawContours(orig_img, smoothened, -1, (255,255,255), 2)
 
-def segmentApproach(img):
-    return contoursWithStaticSaliency(img)
+    return orig_img
 
+def smoothingPoly(img_contour, contours, orig_img):
+
+    for contour in contours:
+        epsilon = 0.10*cv.arcLength(contour,True)
+        approx = cv.approxPolyDP(contour, epsilon,True)
+        contour = approx
+
+    cv.drawContours(orig_img, contours, -1, (255,255,255), 2)
+    return orig_img
+
+    
 def sobelApproach(img):
-    return contoursWithSobel(img)
+    image_with_contour, contours = contoursWithSobel(img)
+    return smoothingPoly(image_with_contour, contours, img)
 
 def detectAll():
     i = 0

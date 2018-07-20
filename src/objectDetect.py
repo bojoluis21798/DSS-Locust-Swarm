@@ -91,9 +91,7 @@ def contoursWithSobel(img):
 
         for tupl in level1:
             contour = contours[tupl[0]]
-            epsilon = 0.10 * cv.arcLength(contour, True)
-            approx = cv.approxPolyDP(contour, 3, True)
-            contour = approx
+            contour = cv.convexHull(contour)
             area = cv.contourArea(contour)
             if area > tooSmall:
                 significant.append([contour, area])
@@ -117,7 +115,7 @@ def contoursWithSobel(img):
     edgeImg[edgeImg > 255] = 255
 
     edgeImg_8u = np.asarray(edgeImg, np.uint8)
-    # Find contours
+    # Find contours and bounding box coordinates for bounding all contours
     significant, min_x, min_y, max_x, max_y = findSignificantContours(img, edgeImg_8u)
 
     # Mask
@@ -146,7 +144,6 @@ def contoursWithStaticSaliency(img):
     closing = cv.morphologyEx(threshMap, cv.MORPH_CLOSE, kernel)
 
     # edged = cv.Canny(closing, 0, 250)
-    cv.imshow("Closing" ,closing)
     _, cnts, heirarchy = cv.findContours(closing, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 
     tooSmall = img.size * 0.03

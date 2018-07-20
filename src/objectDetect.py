@@ -177,12 +177,15 @@ def smoothingInterpolate(img_contour, contours, orig_img):
 
     return orig_img
 
+#for rectangular shapes only, not applicable for shapes with curves
 def smoothingPoly(img_contour, contours, orig_img):
+    index = 0
 
-    for contour in contours:
-        epsilon = 0.10*cv.arcLength(contour,True)
-        approx = cv.approxPolyDP(contour, epsilon,True)
-        contour = approx
+    while(index < len(contours)):
+        epsilon = 0.01*cv.arcLength(contours[index],True)
+        approx = cv.approxPolyDP(contours[index], epsilon,True)
+        contours[index] = approx
+        index+=1
 
     cv.drawContours(orig_img, contours, -1, (255,255,255), 2)
     return orig_img

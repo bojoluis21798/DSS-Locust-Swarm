@@ -1,5 +1,6 @@
 from src.camera import startCam
 from src.objectDetect import detect, detectAll
+from src.scaling import getScale
 import sys
 
 def main():
@@ -7,12 +8,28 @@ def main():
         # Start camera.
         startCam()
         # Draw Rectangle around object in the image.
-        detectAll()
+        imgs, contours = detectAll()
+
+        scaledImgs = []
+        i = 0
+        for img, c in zip(imgs, contours):
+            scaledImg = getScale(i, img, c)
+            scaledImgs.append(scaledImg)
+            i += 1
     elif(len(sys.argv) == 2 and sys.argv[1] == "skipcam"):
         # proceed to detection.
-        detectAll()
+        imgs, contours = detectAll()
+
+        scaledImgs = []
+        i = 0
+        for img, c in zip(imgs, contours):
+            scaledImg = getScale(i, img, c)
+            scaledImgs.append(scaledImg)
+            i += 1
     elif(len(sys.argv) == 3 and sys.argv[1] == "test"):
-        detect(int(sys.argv[2]))
+        imgId = int(sys.argv[2])
+        img, contours = detect(imgId)
+        scales = getScale(imgId, img, contours)
     else:
         print "No such command"
 

@@ -123,14 +123,14 @@ def contoursWithSobel(img):
 
         for tupl in level1:
             contour = contours[tupl[0]]
-            contour = cv.convexHull(contour)
+           # contour = cv.convexHull(contour)
             area = cv.contourArea(contour)
             if area > tooSmall:
                 significant.append([contour, area])
 
-                (x,y,w,h) = cv.boundingRect(contour)
-                min_x, max_x = min(x, min_x), max(x+w, max_x)
-                min_y, max_y = min(y, min_y), max(y+h, max_y)
+             #   (x,y,w,h) = cv.boundingRect(contour)
+             #   min_x, max_x = min(x, min_x), max(x+w, max_x)
+             #   min_y, max_y = min(y, min_y), max(y+h, max_y)
 
                 # Draw the contour on the original image
                 cv.drawContours(img, [contour], 0, (0, 255, 0), 2, cv.LINE_AA, maxLevel=1)
@@ -148,7 +148,7 @@ def contoursWithSobel(img):
 
     edgeImg_8u = np.asarray(edgeImg, np.uint8)
     # Find contours and bounding box coordinates for bounding all contours
-    significant, min_x, min_y, max_x, max_y = findSignificantContours(img, edgeImg_8u)
+    significant = findSignificantContours(img, edgeImg_8u)
 
     # Mask
     mask = edgeImg.copy()

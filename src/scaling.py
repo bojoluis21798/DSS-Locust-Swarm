@@ -23,7 +23,7 @@ def getScale(id, img, contours):
         for (x, y) in box:
             cv.circle(img, (int(x), int(y)), 5, (0,0,255), -1)
 
-        (tl,tr,bl,br) = box
+        (tl,bl,br,tr) = box
         (tltrX , tltrY) = midpoint(tl,tr)
         (blbrX, blbrY) = midpoint(bl,br)
 

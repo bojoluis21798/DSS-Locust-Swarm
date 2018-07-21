@@ -117,14 +117,20 @@ def contoursWithSobel(img):
 
         significant = []
         tooSmall = edgeImg.size * 5 / 100
+        height, width, _ = img.shape
+        min_x, min_y = width, height
+        max_x = max_y = 0
+
         for tupl in level1:
             contour = contours[tupl[0]]
-            epsilon = 0.10 * cv.arcLength(contour, True)
-            approx = cv.approxPolyDP(contour, 3, True)
-            contour = approx
+            contour = cv.convexHull(contour)
             area = cv.contourArea(contour)
             if area > tooSmall:
                 significant.append([contour, area])
+
+                (x,y,w,h) = cv.boundingRect(contour)
+                min_x, max_x = min(x, min_x), max(x+w, max_x)
+                min_y, max_y = min(y, min_y), max(y+h, max_y)
 
                 # Draw the contour on the original image
                 cv.drawContours(img, [contour], 0, (0, 255, 0), 2, cv.LINE_AA, maxLevel=1)
@@ -141,8 +147,8 @@ def contoursWithSobel(img):
     edgeImg[edgeImg > 255] = 255
 
     edgeImg_8u = np.asarray(edgeImg, np.uint8)
-    # Find contours
-    significant = findSignificantContours(img, edgeImg_8u)
+    # Find contours and bounding box coordinates for bounding all contours
+    significant, min_x, min_y, max_x, max_y = findSignificantContours(img, edgeImg_8u)
 
     # Mask
     mask = edgeImg.copy()
@@ -153,7 +159,6 @@ def contoursWithSobel(img):
 
     #Finally remove the background
     img[mask] = 0
-
     return img, significant
 
 # def smoothingInterpolate(img_contour, contours, orig_img):

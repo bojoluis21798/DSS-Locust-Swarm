@@ -7,94 +7,94 @@ from scipy.interpolate import splprep, splev
 from imutils import contours as cnts
 from imutils import perspective
 
-def watershed(img):
-    gray = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
-    ret, thresh = cv.threshold(gray,0,255,cv.THRESH_BINARY_INV+cv.THRESH_OTSU)
+# def watershed(img):
+#     gray = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
+#     ret, thresh = cv.threshold(gray,0,255,cv.THRESH_BINARY_INV+cv.THRESH_OTSU)
 
-    kernel = np.ones((3,3),np.uint8)
-    opening = cv.morphologyEx(thresh,cv.MORPH_OPEN,kernel, iterations = 2)
+#     kernel = np.ones((3,3),np.uint8)
+#     opening = cv.morphologyEx(thresh,cv.MORPH_OPEN,kernel, iterations = 2)
 
-    sure_bg = cv.dilate(opening,kernel,iterations=3)
+#     sure_bg = cv.dilate(opening,kernel,iterations=3)
 
-    dist_transform = cv.distanceTransform(opening,cv.DIST_L2,5)
-    ret, sure_fg = cv.threshold(dist_transform,0.7*dist_transform.max(),255,0)
+#     dist_transform = cv.distanceTransform(opening,cv.DIST_L2,5)
+#     ret, sure_fg = cv.threshold(dist_transform,0.7*dist_transform.max(),255,0)
 
-    sure_fg = np.uint8(sure_fg)
-    unknown = cv.subtract(sure_bg,sure_fg)
+#     sure_fg = np.uint8(sure_fg)
+#     unknown = cv.subtract(sure_bg,sure_fg)
 
-    # Marker labelling
-    ret, markers = cv.connectedComponents(sure_fg)
-    # Add one to all labels so that sure background is not 0, but 1
-    markers = markers+1
-    # Now, mark the region of unknown with zero
-    markers[unknown==255] = 0
+#     # Marker labelling
+#     ret, markers = cv.connectedComponents(sure_fg)
+#     # Add one to all labels so that sure background is not 0, but 1
+#     markers = markers+1
+#     # Now, mark the region of unknown with zero
+#     markers[unknown==255] = 0
 
-    markers = cv.watershed(img,markers)
-    for row in range(int(len(markers)*0.01), int(len(markers)-(len(markers)*0.01))):
-        for col in range(int(len(markers[row])*0.01), int(len(markers[row])-len(markers[row])*0.01)):
-            if(markers[row][col] == -1):
-                img[row][col] = [20,255,57]
+#     markers = cv.watershed(img,markers)
+#     for row in range(int(len(markers)*0.01), int(len(markers)-(len(markers)*0.01))):
+#         for col in range(int(len(markers[row])*0.01), int(len(markers[row])-len(markers[row])*0.01)):
+#             if(markers[row][col] == -1):
+#                 img[row][col] = [20,255,57]
 
-    return img
+#     return img
 
-def contoursWithCanny(img):
-    img = img.copy()
-    edged = cv.Canny(img, 10, 250)
+# def contoursWithCanny(img):
+#     img = img.copy()
+#     edged = cv.Canny(img, 10, 250)
 
-    #applying closing function
-    kernel = cv.getStructuringElement(cv.MORPH_RECT, (7, 7))
-    closed = cv.morphologyEx(edged, cv.MORPH_CLOSE, kernel)
-    #finding_contours
-    _, cnts, _ = cv.findContours(closed.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+#     #applying closing function
+#     kernel = cv.getStructuringElement(cv.MORPH_RECT, (7, 7))
+#     closed = cv.morphologyEx(edged, cv.MORPH_CLOSE, kernel)
+#     #finding_contours
+#     _, cnts, _ = cv.findContours(closed.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 
-    cnts.sort(key=lambda x: cv.contourArea(x))
-    #cnts = cnts[:2]
+#     cnts.sort(key=lambda x: cv.contourArea(x))
+#     #cnts = cnts[:2]
 
-    tooSmall = img.size * 0.05
-    for c in cnts:
-        # if(cv.contourArea(c) < tooSmall):
-        #     continue
+#     tooSmall = img.size * 0.05
+#     for c in cnts:
+#         # if(cv.contourArea(c) < tooSmall):
+#         #     continue
 
-        x,y,w,h = cv.boundingRect(c)
-        # if w>50 and h>50:
-        #     cropped=img[y:y+h,x:x+w]
-        #     return cropped
+#         x,y,w,h = cv.boundingRect(c)
+#         # if w>50 and h>50:
+#         #     cropped=img[y:y+h,x:x+w]
+#         #     return cropped
 
-        cv.rectangle(img, (x,y), (x+w, y+h), (255,0,0), 2)
+#         cv.rectangle(img, (x,y), (x+w, y+h), (255,0,0), 2)
 
-        cv.drawContours(img, c, -1, (0,255,0), 2)
-    return img
+#         cv.drawContours(img, c, -1, (0,255,0), 2)
+#     return img
 
-def contoursWithStaticSaliency(img):
-    img = contoursWithSobel(img)
-    noise = cv.fastNlMeansDenoisingColored(img,None,10,10,7,21)
+# def contoursWithStaticSaliency(img):
+#     img = contoursWithSobel(img)
+#     noise = cv.fastNlMeansDenoisingColored(img,None,10,10,7,21)
 
-    saliency = cv.saliency.StaticSaliencyFineGrained_create()
-    (success, saliencyMap) = saliency.computeSaliency(img)
-    threshMap = cv.threshold(saliencyMap, 0, 255, cv.THRESH_BINARY | cv.THRESH_OTSU)[1]
+#     saliency = cv.saliency.StaticSaliencyFineGrained_create()
+#     (success, saliencyMap) = saliency.computeSaliency(img)
+#     threshMap = cv.threshold(saliencyMap, 0, 255, cv.THRESH_BINARY | cv.THRESH_OTSU)[1]
 
-    kernel = np.ones((30, 30), np.uint8)
-    closing = cv.morphologyEx(threshMap, cv.MORPH_CLOSE, kernel)
+#     kernel = np.ones((30, 30), np.uint8)
+#     closing = cv.morphologyEx(threshMap, cv.MORPH_CLOSE, kernel)
 
-    # edged = cv.Canny(closing, 0, 250)
+#     # edged = cv.Canny(closing, 0, 250)
 
-    _, cnts, heirarchy = cv.findContours(closing, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-    
-    tooSmall = img.size * 0.03
-    for c in cnts:
-        # if cv.contourArea(c) < tooSmall:
-        #     continue
+#     _, cnts, heirarchy = cv.findContours(closing, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 
-        rect = cv.minAreaRect(c)
-        if rect[1][0]*rect[1][1] > tooSmall:
-            box = cv.boxPoints(rect)
-            box = np.int0(box)
-            img = cv.drawContours(img,[box],0,(0,255,0),5)
+#     tooSmall = img.size * 0.03
+#     for c in cnts:
+#         # if cv.contourArea(c) < tooSmall:
+#         #     continue
 
-    return img
+#         rect = cv.minAreaRect(c)
+#         if rect[1][0]*rect[1][1] > tooSmall:
+#             box = cv.boxPoints(rect)
+#             box = np.int0(box)
+#             img = cv.drawContours(img,[box],0,(0,255,0),5)
 
-def segmentApproach(img):
-    return contoursWithStaticSaliency(img)
+#     return img
+
+# def segmentApproach(img):
+#     return contoursWithStaticSaliency(img)
 
 def contoursWithSobel(img):
     def edgedetect (channel):
@@ -159,26 +159,26 @@ def contoursWithSobel(img):
 
     return img, significant
 
-def smoothingInterpolate(img_contour, contours, orig_img):
-    
-    smoothened = []
+# def smoothingInterpolate(img_contour, contours, orig_img):
 
-    for contour in contours:
-        x,y = contour.T
-    # Convert from numpy arrays to normal arrays
-        x = x.tolist()[0]
-        y = y.tolist()[0]
-    
-        tck, u = splprep([x,y], u=None, s=1.0, per=1)
-        u_new = np.linspace(u.min(), u.max(), 25)
-        x_new, y_new = splev(u_new, tck, der=0)
-        res_array = [[[int(i[0]), int(i[1])]] for i in zip(x_new,y_new)]
-        smoothened.append(np.asarray(res_array, dtype=np.int32))
+#     smoothened = []
 
-    # Overlay the smoothed contours on the original image
-    cv.drawContours(orig_img, smoothened, -1, (255,255,255), 2)
+#     for contour in contours:
+#         x,y = contour.T
+#     # Convert from numpy arrays to normal arrays
+#         x = x.tolist()[0]
+#         y = y.tolist()[0]
 
-    return orig_img
+#         tck, u = splprep([x,y], u=None, s=1.0, per=1)
+#         u_new = np.linspace(u.min(), u.max(), 25)
+#         x_new, y_new = splev(u_new, tck, der=0)
+#         res_array = [[[int(i[0]), int(i[1])]] for i in zip(x_new,y_new)]
+#         smoothened.append(np.asarray(res_array, dtype=np.int32))
+
+#     # Overlay the smoothed contours on the original image
+#     cv.drawContours(orig_img, smoothened, -1, (255,255,255), 2)
+
+#     return orig_img
 
 #for rectangular shapes only, not applicable for shapes with curves
 def smoothingPoly(img_contour, contours, orig_img):
@@ -193,28 +193,29 @@ def smoothingPoly(img_contour, contours, orig_img):
     cv.drawContours(orig_img, contours, -1, (255,255,255), 2)
     return orig_img, contours
 
-def orderingContours(img, contours):
-    (contours,_) = cnts.sort_contours(contours)
-    colors = ((0, 0, 255), (240, 0, 159), (255, 0, 0), (255, 255, 0))
+# def orderingContours(img, contours):
+#     (contours,_) = cnts.sort_contours(contours)
+#     colors = ((0, 0, 255), (240, 0, 159), (255, 0, 0), (255, 255, 0))
 
-    for(i, c) in enumerate(contours):
-        box = cv.minAreaRect(c)
-        box = cv.boxPoints(box)
-        box = np.array(box,dtype = "int")
-        cv.drawContours(img,[box], -1, (0,255,0), 2)
-        rect = perspective.order_points(box)
+#     for(i, c) in enumerate(contours):
+#         box = cv.minAreaRect(c)
+#         box = cv.boxPoints(box)
+#         box = np.array(box,dtype = "int")
+#         cv.drawContours(img,[box], -1, (0,255,0), 2)
+#         rect = perspective.order_points(box)
 
-        for ((x, y), color) in zip(rect, colors):
-		    cv.circle(img, (int(x), int(y)), 5, color, -1)
-        
-        # draw the object num at the top-left corner
-        cv.putText(img, "Object #{}".format(i + 1), (int(rect[0][0] - 15), int(rect[0][1] - 15)), cv.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
-    
-    return img
+#         for ((x, y), color) in zip(rect, colors):
+# 		    cv.circle(img, (int(x), int(y)), 5, color, -1)
+
+#         # draw the object num at the top-left corner
+#         cv.putText(img, "Object #{}".format(i + 1), (int(rect[0][0] - 15), int(rect[0][1] - 15)), cv.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
+
+#     return img
 
 def sobelApproach(img):
     image_with_contour, contours = contoursWithSobel(img)
     smoothened_contour_img, smooth_contours = smoothingPoly(image_with_contour, contours, img)
+    # return img, smooth_contours
     return getScale(img, smooth_contours)
 
 def midpoint(ptA, ptB):
@@ -229,13 +230,13 @@ def getScale(img, contours):
         box = cv.minAreaRect(c)
         box = cv.boxPoints(box)
         box = np.array(box,dtype = "int")
-        
+
         box = perspective.order_points(box)
         cv.drawContours(img,[box.astype("int")], -1, (0,255,0), 2)
 
         for (x, y) in box:
 		    cv.circle(img, (int(x), int(y)), 5, (0,0,255), -1)
-        
+
         (tl,tr,bl,br) = box
         (tltrX , tltrY) = midpoint(tl,tr)
         (blbrX, blbrY) = midpoint(bl,br)
@@ -258,18 +259,18 @@ def getScale(img, contours):
 
         if(pixelsPerInch is None):
             pixelsPerInch = dA / 12.0
-        
+
         # compute the size of the object
         dimA = dA / pixelsPerInch
         dimB = dB / pixelsPerInch
 
         # draw the object sizes on the image
-        cv.putText(img, "{:.1f}in".format(dimA), (int(tltrX - 15), int(tltrY - 10)), 
+        cv.putText(img, "{:.1f}in".format(dimA), (int(tltrX - 15), int(tltrY - 10)),
             cv.FONT_HERSHEY_SIMPLEX, 0.65, (255, 255, 255), 2)
         cv.putText(img, "{:.1f}in".format(dimB),
             (int(trbrX + 10), int(trbrY)), cv.FONT_HERSHEY_SIMPLEX,
             0.65, (255, 255, 255), 2)
-    
+
     return img
 
 def detectAll():

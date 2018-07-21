@@ -215,8 +215,9 @@ def smoothingPoly(img_contour, contours, orig_img):
 def sobelApproach(img):
     image_with_contour, contours = contoursWithSobel(img)
     smoothened_contour_img, smooth_contours = smoothingPoly(image_with_contour, contours, img)
-    # return img, smooth_contours
-    return getScale(img, smooth_contours)
+
+    return smoothened_contour_img, smooth_contours
+    # return getScale(img, smooth_contours)
 
 def midpoint(ptA, ptB):
     return ((ptA[0] + ptB[0]) * 0.5, (ptA[1] + ptB[1]) * 0.5)
@@ -275,18 +276,26 @@ def getScale(img, contours):
 
 def detectAll():
     i = 0
+    images = []
+    contours = []
     while(True):
         img = cv.imread("./img/obj-"+str(i)+".jpg")
 
         if img is None:
             break
         print "Detecting obj-"+str(i)+".jpg ..."
-        ret = sobelApproach(img)
-        cv.imwrite("./img/object_highlighted/obj-"+str(i)+".jpg", ret)
+        imgWithContours, smoothContours = sobelApproach(img)
+        cv.imwrite("./img/object_highlighted/obj-"+str(i)+".jpg", imgWithContours)
+
         i += 1
+        images.append(img)
+        contours.append(smoothContours)
+    return images, contours
+
 
 def detect(imgId):
     img = cv.imread("./img/obj-"+str(imgId)+".jpg")
     print "Detection obj-"+str(imgId)+".jpg ..."
-    ret = sobelApproach(img)
-    cv.imwrite("./img/object_highlighted/obj-"+str(imgId)+".jpg", ret)
+    imgWithContours, smooth_contours = sobelApproach(img)
+    cv.imwrite("./img/object_highlighted/obj-"+str(imgId)+".jpg", imgWithContours)
+    return img, smooth_contours
